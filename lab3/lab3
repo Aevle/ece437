@@ -1,1 +1,90 @@
-This is here so I can copy and paste stuff in from my verilog file. That way I can always access my code despite apparently not being able to use gitbash or being able to save to the I: drive.
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    13:33:16 02/18/2017 
+// Design Name: 
+// Module Name:    lab31 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module lab31(
+    input clk,
+    output [7:0] count,
+    output overflow
+    );
+	 
+	wire rst;
+	assign rst = 1'b1;
+	
+	counter counter1(
+		.clk(clk),
+		.rst(rst),
+		.count(count),
+		.overflow(overflow)
+	);
+	
+	wire [35:0] control0;
+	wire [31:0] data;
+	wire [7:0] trig;
+	
+	assign data[7:0] = count;
+	assign trig[0] = overflow;
+	
+	icon icon1(
+		.CONTROL0(control0) 
+		);
+	
+	ila ila1(
+		.CONTROL(control0),
+		.CLK(clk),
+		.DATA(data),
+		.TRIG0(trig)
+	);
+	
+endmodule
+
+/////////////////////////////////////////////////////////////////////////////////
+	
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+module counter(
+	input clk,
+	input rst,
+	output [7:0] count,
+	output overflow
+	);
+	
+	reg [7:0] count_int = 0;
+	assign count = count_int;
+	
+	reg overflow_int = 0;
+	assign overflow = overflow_int;
+	
+	always @(posedge clk) begin
+		if (rst == 0) begin
+			count_int = 0;
+		end else begin
+			if (&count_int == 1) begin
+				overflow_int = 1;
+			end else begin
+				overflow_int = 0;
+			end
+			
+			count_int = count_int + 1;
+		end
+	end
+	
+endmodule
+/////////////////////////////////////////////////////////////////////////////////
