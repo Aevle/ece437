@@ -1,0 +1,54 @@
+# -*- coding: utf-8 -*-
+"""
+ECE 437 - Sensors and Instrumentation
+Spring 2016
+
+Demonstrates basic OpalKelly functionality:
+    - Connecting to devices
+    - Configuring devices
+    - WireIn communication
+    - WireOut communication
+
+@author: Brady Salz (salz2)
+"""
+
+#%%
+# First we import the library and init the FrontPanel object
+import ok
+from time import sleep
+dev = ok.okCFrontPanel()
+
+#%% 
+# Next we open the device and program it
+error_OpenBySerial = dev.OpenBySerial("")
+error_ConfigureFpga = dev.ConfigureFPGA("framework.bit");
+
+#%% 
+# Display some diagnostic code
+print("Open by Serial Error Code: " + str(error_OpenBySerial))
+print("Configure FPGA Error Code: " + str(error_ConfigureFpga))
+ 
+#%% 
+# WireIn Example
+# Send value 0x0A to Wire endpoint with address 0x00
+dev.SetWireInValue(0x00, 0xFF)
+dev.UpdateWireIns()
+counter = 0
+
+ 
+#%%
+# WireOut Example
+# Retrieve value on Wire endpoint with address 0x20
+while 1:
+    sleep(.1)
+    dev.UpdateWireOuts()
+    buttonState = dev.GetWireOutValue(0x20)
+    #print(buttonState)
+    if counter < 100:
+        counter += buttonState
+        print("Button pressed:" + str(buttonState))
+        print("Counter:" + str(counter))
+    else:
+        dev.SetWireInValue(0x00, 0x00)
+        dev.UpdateWireIns()
+    
