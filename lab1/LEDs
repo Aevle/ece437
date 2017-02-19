@@ -1,0 +1,52 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    15:15:53 01/23/2017 
+// Design Name: 
+// Module Name:    intro 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module intro(
+    input clk,
+    input [3:0] button,
+    output [7:0] led
+    );
+	reg[7:0] counter = 8'h00;
+	reg[23:0] clkdiv = 20'h000000;
+	assign led = ~counter;
+	
+	always @(posedge clk) begin
+	  clkdiv <= clkdiv + 1'b1;
+
+	  if (clkdiv == 0) begin
+		if(button == 4'b1110) begin
+		 counter <= 8'hff;
+		end
+		else if(button == 4'b1101) begin
+			counter <= 8'h00;
+		end
+	   else if (button == 4'b1011) begin
+		  counter <= counter + 1'b1;
+	   end
+		else if (button == 4'b0111) begin
+			counter <= counter - 1'b1;
+		end
+		else begin
+			counter <= counter;
+		end
+     end
+	end
+
+endmodule
