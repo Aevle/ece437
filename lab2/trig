@@ -1,0 +1,141 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    15:41:29 01/30/2017 
+// Design Name: 
+// Module Name:    lab2 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module lab2(
+	 input clk,
+    input [3:0] button,
+    output [7:0] LED
+    );
+
+wire[15:0] start;
+reg[15:0] tout;
+wire[30:0] ok1;
+wire[16:0] ok2;
+
+reg[2:0] state;
+localparam STATE_INIT = 3'b000;
+localparam STATE_7 = 3'b001;
+localparam STATE_4 = 3'b010;
+localparam STATE_3 = 3'b011;
+localparam STATE_1 = 3'b100;
+localparam STATE_END = 3'b101;
+
+reg[7:0] led_value;
+reg[19:0] counter = 20'h00000;
+reg clkdiv;
+
+assign LED = led_value;
+
+
+assign clk1 = clkdiv;
+
+always @ (posedge clk1) begin
+	//initialize tout here
+	tout <= 8'h00;
+	case(state) 
+		STATE_INIT: begin
+			if(start) begin
+				state <= STATE_1;
+				// tout should go here
+				tout <= 8'h00;
+			end
+			led_value <= led_value + 1;
+		end
+		
+		STATE_7: begin
+				if(button == 4'b1110)begin
+					state <= STATE_4;
+				end else begin
+					state <= STATE_7;
+				end
+				led_value <= 8'h80;
+		end
+		
+		STATE_4: begin
+				if(start)begin
+					state <= STATE_END;
+					//tout should go here
+					tout <= 8'h02;
+				end
+				if(button == 4'b1110)begin
+					state <= STATE_3;
+				end
+				led_value <= 8'hF0;
+		end
+		
+		STATE_3: begin
+				if(button == 4'b1110)begin
+					state <= STATE_1;
+				end else begin
+					state <= STATE_3;
+				end
+				led_value <= 8'hF8;
+		end
+		
+		STATE_1: begin
+			if(button == 4'b1110)begin
+				state <= STATE_7;
+			end else begin
+				state <= STATE_1;
+			end
+			led_value <= 8'hFE;
+		end
+		
+		STATE_END: begin
+			if(start) begin
+				state <= STATE_1;
+				//tout assignment here
+				tout <= 8'h05;
+			end 
+			led_value <= 8'h00;
+		end
+		
+	endcase
+
+end
+
+always @ (posedge clk) begin
+	counter <= counter + 1;
+	if(counter % 20'hFFFFF == 0)begin
+		clkdiv <= 1;
+		counter <= counter % 20'hFFFFF;
+	end else begin
+		clkdiv <= 0;
+	end
+end
+
+okTriggerIn smstart(
+	.ok1(ok1),
+	.ep_addr(8'h40),
+	.ep_clk(clk1),
+	.ep_trigger(start)
+	);
+ 
+okTriggerOut smout(
+     .ok1(ok1),
+     .ok2(ok2),
+     .ep_addr(8'h60),
+     .ep_clk(clk1),
+     .ep_trigger({tout})
+	  );
+	  
+endmodule
+
+
