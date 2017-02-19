@@ -1,0 +1,54 @@
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   17:01:36 02/06/2017
+// Design Name:   lab2
+// Module Name:   C:/Users/alitz2/Lab2/lab2_TB.v
+// Project Name:  Lab2
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: lab2
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module lab2_TB;
+
+	// Inputs
+	reg clk;
+	reg [3:0] button;
+
+	// Outputs
+	wire [7:0] LED;
+
+	// Instantiate the Unit Under Test (UUT)
+	lab2 uut (
+		.clk(clk), 
+		.button(button), 
+		.LED(LED)
+	);
+
+	initial begin
+		// Initialize Inputs
+		clk = 0;
+		button = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
