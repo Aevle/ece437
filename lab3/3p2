@@ -1,0 +1,160 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    15:03:23 02/18/2017 
+// Design Name: 
+// Module Name:    trafficlight 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module trafficlight(
+    input clk,
+    input rst,
+    input button,
+    output [7:0] LEDs,
+	 output clk1_out
+    );
+
+	reg [2:0] state;
+	reg clk1;
+	assign clk1_out = clk1;
+	
+	localparam NSG = 3'b000;
+	localparam NSA = 3'b001;
+	localparam NSR = 3'b010;
+	localparam EWG = 3'b011;
+	localparam EWA = 3'b100;
+	localparam EWR = 3'b101;
+	localparam PEN = 3'b110;
+	localparam PNE = 3'b111;
+	
+	reg [7:0] led_reg;
+	//  R1 | A1 | G1 | R2 | A2 | G2 | R3 | G3
+	assign LEDs = led_reg;
+	
+	reg ped_bool = 1'b0;
+	
+	reg [27:0] clkdiv = 27'd0;
+	
+	always @(posedge clk1) begin
+		case(state)
+			NSG : begin
+				//lights
+				led_reg <= 8'b00110010;
+				//3 seconds
+				#3000000000
+				//pedestrian set
+				if (button == 1'b0) begin
+					ped_bool <= 1'b1;
+					end
+				//NSA
+				state <= NSA;
+				end
+			
+			NSA : begin
+				//lights
+				led_reg <= 8'b01010010;
+				//1 second
+				#1000000000
+				//pedestrian set
+				if (button == 1'b0) begin
+					ped_bool <= 1'b1;
+					end
+				//NSR or PNE
+				if (ped_bool == 1) begin
+					state <= PNE;
+					ped_bool <= 1'b0;
+					end else begin
+					state <= NSR;
+					end
+				end
+			
+			NSR : begin
+				//lights
+				led_reg <= 8'b10010010;
+				//1 second
+				#1000000000
+				//EWG
+				state <= EWG;
+				end
+			
+			EWG : begin
+				//lights
+				led_reg <= 8'b10000110;
+				//3 seconds
+				#3000000000
+				//pedestrian set
+				if (button == 1'b0) begin
+					ped_bool <= 1'b1;
+					end
+				//EWA
+				state <= EWA;
+				end
+			
+			EWA : begin
+				//lights
+				led_reg <= 8'b10001010;
+				//1 second
+				#1000000000
+				//pedestrian set
+				if (button == 1'b0) begin
+					ped_bool <= 1'b1;
+					end
+				//EWR or PEN
+				if (ped_bool == 1) begin
+					state <= PEN;
+					ped_bool <= 1'b0;
+					end else begin
+					state <= EWR;
+					end
+				end
+			
+			EWR : begin
+				//lights
+				led_reg <= 8'b10010010;
+				//1 second
+				#1000000000
+				//NSG
+				state <= NSG;
+				end	
+			
+			PEN : begin
+				//lights
+				led_reg <= 8'b10010001;
+				//3 seconds
+				#3000000000
+				//NSG
+				state <= NSG;
+				end
+			
+			PNE : begin
+				//lights
+				led_reg <= 8'b10010001;
+				//3 seconds
+				#3000000000
+				//EWG
+				state <= EWG;
+				end
+		endcase
+	end
+	
+	always @(posedge clk) begin
+		clkdiv <= clkdiv + 1'b1;
+
+		if (clkdiv == 0) begin
+			clk1 <= ~clk1;
+			end
+	end
+
+endmodule
