@@ -1,0 +1,52 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:01:05 02/20/2017 
+// Design Name: 
+// Module Name:    uart_clk 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module uart_clk(
+    input clk,
+	 input rst,
+	 output [12:0] uart_count,
+    output uart_clk
+    );
+	 		
+	localparam div_5k = 13'b1001110001000;
+	reg [12:0] counter;
+	reg clkdiv;
+	
+	assign uart_clk = clkdiv;
+	assign uart_cout = counter;
+	
+	//System clock is 48 MHz
+	//UART needs 9600 Hz
+	
+	always @ (posedge clk) begin
+		if(rst) begin
+			clkdiv <= 1'b0;
+			counter <= 13'b0000000000000;
+			end
+		counter <= counter + 1;
+		if(counter % 4'b1111 == 0)begin
+			clkdiv <= !clkdiv;
+			counter <= counter % 4'b1111;
+			end 
+		end
+		
+endmodule
+
+
