@@ -1,29 +1,29 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date:    19:35:50 03/02/2017 
-// Design Name: 
-// Module Name:    uart_interface 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
+// Company:
+// Engineer:
 //
-// Dependencies: 
+// Create Date:    19:35:50 03/02/2017
+// Design Name:
+// Module Name:    uart_interface
+// Project Name:
+// Target Devices:
+// Tool versions:
+// Description:
 //
-// Revision: 
+// Dependencies:
+//
+// Revision:
 // Revision 0.01 - File Created
-// Additional Comments: 
+// Additional Comments:
 //
 //////////////////////////////////////////////////////////////////////////////////
 module uart_interface(
 		input clk,							//48 MHz
 		input uart_clk,					//9.6 kHz, dependent uart_clk.v
-		input sensor_tx,					
+		input sensor_tx,
 		input enable,						//active low
-		output verilog_tx,				
+		output verilog_tx,
 		output [49:0] data_out,			//to uart_buffer
     );
 
@@ -34,12 +34,13 @@ reg verilog_tx_reg;
 assign verilog_rx = verilog_tx_reg;
 reg[49:0] data_out;
 reg data_trig;
-	
+
 //parameters for comparing packets
 reg [9:0] buffer;
 localparam ASCII_R = 10'b0010100101; //0x52
 localparam ASCII_CR = 10'b0000010111; //0x13
-localparam PACK_SIZE = 4'd10;
+localparam CLEAR_BUFFER = 10'b1111111111;
+
 
 //states
 reg [3:0] state;
@@ -48,92 +49,91 @@ reg [3:0] save_state;
 localparam IDLE = 4'b0000;
 localparam CLEAR = 4'b0001;
 localparam READ_R = 4'b0010;
-localparam READ_PACKET = 4'b0011;
+localparam READ_PACKET1 = 4'b0011;
 localparam READ_PACKET2 = 4'b0100;
 localparam READ_PACKET3 = 4'b0101;
 localparam READ_CR = 4'b0110;
 
 //parameters for timing
-reg prev_uart_clk;
-reg [3:0] counter;
+reg [7:0] counter;
+localparam CLEAR_COUNTER 8'b0000_0000;
+localparam PACK_SIZE = 4'd10;
 
-//manage buffer block
-always @ (posedge clk) begin
+//manage data in block (inc. counter)
+always @ (posedge uart_clk) begin
 	if(verilog_tx_reg == 1'b1) counter <= 4'd0;
 	//If on new 9600 cycle, read new character
-	if(prev_uart_clk != uart_clk) begin
-		buffer <= buffer << 1;
-		buffer[0] <= sensor_tx;
-		counter <= counter + 1;
-		end	
-	//reset edge trigger
-	prev_uart_clk <= uart_clk;
-	end
-	
-	
-//State transition fsm
-always @ (posedge clk) begin
-	state <= next_state;
-	//state transitions
-	case(state)
-		IDLE : if(~enable) next_state <= READ_R;
-		CLEAR: if(counter == 10) next_state <= save_state;
-		READ_R : begin
-			if((buffer == ASCII_R) && (prev_uart_clk  != uart_clk)) begin
-				next_state <= READ_PACKET;
-				counter <= 4'd0;
-				end
-			end
-		READ_PACKET : begin
-			if(packet[9] = 0) begin
-				next_state <= CLEAR;
-				save_state <= READ_PACKET2;
-				end
-			end
-		READ_PACKET2 : begin
-			if(packet[9] = 0) begin
-				next_state <= CLEAR;
-				save_state <= READ_PACKET3;
-				end
-			end
-		READ_PACKET3 : begin
-			if(packet[9] = 0) begin
-				next_state <= CLEAR;
-				save_state <= READ_PACKETCR;
-				end
-			end
-		READ_CR : begin
-			if((counter == PACK_SIZE) && (buffer == ASCII_CR)) begin
-				next_state <= clear;
-				counter <= 0;
-				end
-			end
-		
-		endcase
+	buffer <= buffer << 1;
+	buffer[0] <= sensor_tx;
+	counter <= counter + 1;
 	end
 
-//State effect fsm
-always@(posedge clk) begin
-	case(state)
-		IDLE : begin
-			buffer <= 10'b1111111111;
-			verilog_rx_reg <= 1'b1;
-			counter <= 4'd0;
-			end
-		CLEAR : begin
-			buffer <= 10'b1111111111;
-			counter <= 4'd0;
-			data_trig = 1'b1;
-		end
-
-		endcase
-	end
-
-
-always @(posedge data_trig) begin
+//manage data out block
+always @ (posedge data_trig) begin
+	data_out <= data_out << 10;
 	data_out[9:0] <= buffer;
-	buffer <= 10'b1111111111;
-	data_trig = 1'b0;
-	end 
-	
+	buffer <= CLEAR_BUFFER;
+	end
+
+//state machine
+always @(posedge clk) begin
+	state <= next_state;
+	case(state)
+	 	IDLE: begin
+			//transition
+			if(!enable) next_state <= READ_R;
+			//effect
+			buffer <= CLEAR_BUFFER;
+			data_trig <= 1'b0;
+			verilog_tx_reg <= 1'b0;
+			end
+		READ_R: begin
+			//transition
+			if(buffer == ASCII_R) begin
+				next_state <= READ_PACKET1;
+			//effect
+				counter <= CLEAR_COUNTER;
+				data_trig <= 1'b1;
+				end
+			verilog_tx_reg <= 1'b1;
+			end
+		READ_PACKET1: begin
+			//transition
+			if((counter >= PACK_SIZE) && (buffer[9] == 1'b0)) begin
+				next_state <= READ_PACKET2;
+			//effect
+				counter <= CLEAR_COUNTER;
+				data_trig <= 1'b1;
+				end
+			end
+		READ_PACKET2: begin
+			//transition
+			if((counter >= PACK_SIZE) && (buffer[9] == 1'b0)) begin
+				next_state <= READ_PACKET3;
+			//effect
+				counter <= CLEAR_COUNTER;
+				data_trig <= 1'b1;
+				end
+			end
+		READ_PACKET3: begin
+			//transition
+			if((counter >= PACK_SIZE) && (buffer[9] == 1'b0)) begin
+				next_state <= READ_CR;
+			//effect
+				counter <= CLEAR_COUNTER;
+				data_trig <= 1'b1;
+				end
+			end
+		READ_CR: begin
+			//transition
+			if((counter >= PACK_SIZE) && (buffer[9] == 1'b0)) begin
+				next_state <= IDLE;
+			//effect
+				counter <= CLEAR_COUNTER;
+				data_trig <= 1'b1;
+				verilog_tx_reg <= 1'b0;
+				end
+			end
+		endcase
+	end
 endmodule
