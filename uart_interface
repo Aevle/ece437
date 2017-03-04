@@ -24,8 +24,7 @@ module uart_interface(
 		input sensor_tx,					
 		input enable,						//active low
 		output verilog_tx,				
-		output [9:0] data_out,			//to uart_buffer
-		output data_trig					//signal to capture data
+		output [49:0] data_out,			//to uart_buffer
     );
 
 
@@ -33,10 +32,13 @@ module uart_interface(
 //registers to change outputs
 reg verilog_tx_reg;
 assign verilog_rx = verilog_tx_reg;
-
+reg[49:0] data_out;
+reg data_trig;
+	
 //parameters for comparing packets
 reg [9:0] buffer;
 localparam ASCII_R = 10'b0010100101; //0x52
+localparam ASCII_CR = 10'b0000010111; //0x13
 localparam PACK_SIZE = 4'd10;
 
 //states
@@ -75,7 +77,7 @@ always @ (posedge clk) begin
 	//state transitions
 	case(state)
 		IDLE : if(~enable) next_state <= READ_R;
-		CLEAR: next_state <= save_state;
+		CLEAR: if(counter == 10) next_state <= save_state;
 		READ_R : begin
 			if((buffer == ASCII_R) && (prev_uart_clk  != uart_clk)) begin
 				next_state <= READ_PACKET;
@@ -83,20 +85,26 @@ always @ (posedge clk) begin
 				end
 			end
 		READ_PACKET : begin
-			if(counter == PACK_SIZE) begin
+			if(packet[9] = 0) begin
 				next_state <= CLEAR;
 				save_state <= READ_PACKET2;
 				end
 			end
 		READ_PACKET2 : begin
-			if(counter == PACK_SIZE) begin
+			if(packet[9] = 0) begin
+				next_state <= CLEAR;
 				save_state <= READ_PACKET3;
-				counter <= 0;
 				end
 			end
 		READ_PACKET3 : begin
-			if(counter == PACK_SIZE) begin
-				next_state <= READ_PACKET2;
+			if(packet[9] = 0) begin
+				next_state <= CLEAR;
+				save_state <= READ_PACKETCR;
+				end
+			end
+		READ_CR : begin
+			if((counter == PACK_SIZE) && (buffer == ASCII_CR)) begin
+				next_state <= clear;
 				counter <= 0;
 				end
 			end
@@ -108,12 +116,12 @@ always @ (posedge clk) begin
 always@(posedge clk) begin
 	case(state)
 		IDLE : begin
-			buffer <= 10'b0000000000;
+			buffer <= 10'b1111111111;
 			verilog_rx_reg <= 1'b1;
 			counter <= 4'd0;
 			end
 		CLEAR : begin
-			buffer <= 10'b0000000000;
+			buffer <= 10'b1111111111;
 			counter <= 4'd0;
 			data_trig = 1'b1;
 		end
@@ -121,4 +129,11 @@ always@(posedge clk) begin
 		endcase
 	end
 
+
+always @(posedge data_trig) begin
+	data_out[9:0] <= buffer;
+	buffer <= 10'b1111111111;
+	data_trig = 1'b0;
+	end 
+	
 endmodule
